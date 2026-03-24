@@ -4,7 +4,7 @@ import asyncio
 import os
 
 TOKEN = os.getenv("TOKEN")
-CHANNEL_ID = 123456789
+CHANNEL_ID = https://discord.com/channels/1450804817957093378/1485912299288920176
 
 API_URL = "https://codex.fqegg.top/api/tower"
 
