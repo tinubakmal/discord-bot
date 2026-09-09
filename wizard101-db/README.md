@@ -145,7 +145,11 @@ Le projet est structuré pour limiter le travail au moment du déploiement :
    même route `/api/items`.
 3. **Images** : `next.config.mjs` autorise actuellement toutes les images
    distantes (`remotePatterns: "**"`) pour faciliter le prototypage ; à
-   restreindre à un domaine précis avant mise en ligne.
+   restreindre à un domaine précis avant mise en ligne. Les photos
+   uploadées depuis le back-office (`/api/admin/upload`) sont écrites sur le
+   disque local du serveur (`public/uploads/items/`, non versionné) — à
+   remplacer par un stockage objet (S3, R2...) avant toute mise en ligne,
+   sans quoi les images ne survivraient pas à un redéploiement.
 4. **Fonctionnalités encore absentes** : comptes utilisateurs (donc pas
    d'authentification sur le back-office admin ni de synchronisation des
    favoris/builds entre appareils), partage de builds par lien dédié,

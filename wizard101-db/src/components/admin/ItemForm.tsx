@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/slugify";
+import { ImageUploadField } from "./ImageUploadField";
 
 type AdminMeta = {
   schools: { id: string; name: string }[];
@@ -225,9 +226,9 @@ export function ItemForm({ itemId }: { itemId?: string }) {
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-xs uppercase tracking-wider text-arcane-400">Image (URL)</label>
-          <input value={form.imageUrl} onChange={(e) => update("imageUrl", e.target.value)} className="input-arcane" />
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-xs uppercase tracking-wider text-arcane-400">Photo</label>
+          <ImageUploadField value={form.imageUrl} onChange={(url) => update("imageUrl", url)} />
         </div>
         <div>
           <label className="mb-1 block text-xs uppercase tracking-wider text-arcane-400">Popularite</label>

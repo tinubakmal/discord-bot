@@ -10,3 +10,8 @@ prisma/dev.db
 prisma/dev.db-journal
 .DS_Store
 npm-debug.log*
+
+# Images uploadees via le back-office admin (stockage disque local, voir
+# src/app/api/admin/upload) : contenu genere par l'utilisateur, pas du code.
+public/uploads/items/*
+!public/uploads/items/.gitkeep
