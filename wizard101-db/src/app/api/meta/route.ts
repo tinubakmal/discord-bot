@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import type { MetaResponse } from "@/lib/types";
 
+// Force le rendu dynamique : sans ca, Next.js tente de pre-rendre cette
+// route au moment du build (elle n'a pas de parametre de requete) et
+// executerait des requetes Prisma contre une base qui n'existe pas encore
+// dans un environnement de build propre (ex: CI).
+export const dynamic = "force-dynamic";
+
 // Fournit toutes les listes de reference necessaires aux filtres de
 // recherche et aux formulaires (ecoles, mondes/zones, boss, raretes, types
 // d'objets, sets, definitions de statistiques). Un seul appel au chargement

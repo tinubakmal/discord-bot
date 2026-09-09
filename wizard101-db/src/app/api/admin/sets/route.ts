@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slugify";
 
+// Voir la meme note dans /api/meta/route.ts : evite le pre-rendu statique
+// au build (cette route n'a pas de parametre de requete).
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const sets = await prisma.itemSet.findMany({
     orderBy: { name: "asc" },

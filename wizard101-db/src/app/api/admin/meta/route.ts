@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+// Voir la meme note dans /api/meta/route.ts : evite le pre-rendu statique
+// au build (cette route n'a pas de parametre de requete).
+export const dynamic = "force-dynamic";
+
 /**
  * Variante admin de /api/meta : renvoie les ids bruts (pas seulement les
  * slugs) de tous les referentiels, necessaires pour peupler les selects des

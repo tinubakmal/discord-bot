@@ -1,0 +1,50 @@
+name: wizard101-db CI
+
+# Verification minimale (schema Prisma valide + build/type-check Next.js)
+# sur les changements touchant l'app wizard101-db/. Pas de tests
+# automatises pour l'instant (aucun n'existe dans le projet) : ce workflow
+# attrape les erreurs de compilation/typage avant merge, rien de plus.
+
+on:
+  pull_request:
+    paths:
+      - "wizard101-db/**"
+      - ".github/workflows/wizard101-db-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "wizard101-db/**"
+      - ".github/workflows/wizard101-db-ci.yml"
+
+defaults:
+  run:
+    working-directory: wizard101-db
+
+env:
+  # Le build n'a besoin que d'une valeur syntaxiquement valide : `prisma
+  # generate` et `next build` ne se connectent pas a une vraie base.
+  DATABASE_URL: "file:./dev.db"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: wizard101-db/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verifier le schema Prisma
+        run: npx prisma validate
+
+      - name: Generer le client Prisma
+        run: npx prisma generate
+
+      - name: Build (compile + type-check Next.js/TypeScript)
+        run: npm run build
