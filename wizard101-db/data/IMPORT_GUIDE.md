@@ -85,6 +85,26 @@ npm run import -- --file data/mes-items.csv
 npm run prisma:studio
 ```
 
+## Exemple avec de vraies donnees
+
+`data/wiki-death-waterworks-set.json` est un premier exemple avec des items
+**reels** du jeu (le set "Hangman's" du donjon Waterworks, ecole Mort,
+niveau 60), reconstitue a partir de recherches web (les pages du wiki
+Wizard101 elles-memes ne sont pas accessibles en fetch direct depuis cet
+environnement de developpement, egress bloque par la politique reseau ; les
+donnees viennent donc d'extraits de recherche citant ces pages).
+
+Deux niveaux de confiance a bien distinguer selon vos propres sources :
+- Statistiques **confirmees individuellement** (Hood, Cape) : trouvees
+  directement piece par piece.
+- Statistiques **estimees** (Boots) : le detail par piece n'etait pas
+  disponible, donc calculees par soustraction (total du set complet moins
+  les pieces connues). C'est indique explicitement dans la description et le
+  `sourceText` de l'item - a verifier en jeu avant de faire confiance a ces
+  chiffres. Gardez cette convention (mentionner la fiabilite de la source
+  dans `description`/`sourceText`) pour vos propres imports de donnees
+  incertaines.
+
 ## Aller plus loin (import depuis une autre base de donnees)
 
 Pour importer depuis une base de donnees externe (ex: un dump communautaire),

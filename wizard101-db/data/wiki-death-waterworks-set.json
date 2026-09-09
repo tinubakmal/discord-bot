@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Hangman's Hood",
+    "type": "hat",
+    "level": 60,
+    "schools": ["death"],
+    "description": "Piece du set Hangman's (donjon Waterworks). Stats confirmees via recherche web (extrait de wiki.wizard101central.com, page non accessible directement depuis cet environnement).",
+    "world": "Wizard City",
+    "zone": "Crab Alley",
+    "boss": "Luska Charmbeak",
+    "set": "Hangman's Set",
+    "sourceText": "Butin de Luska Charmbeak (premier boss du donjon Waterworks)",
+    "stats": {
+      "health": 264,
+      "power_pip_chance": 8,
+      "death_damage": 18,
+      "resist": 9,
+      "critical_rating": 66
+    }
+  },
+  {
+    "name": "Hangman's Cape",
+    "type": "robe",
+    "level": 60,
+    "schools": ["death"],
+    "description": "Piece du set Hangman's (donjon Waterworks). Stats confirmees via recherche web (extrait de wiki.wizard101central.com, page non accessible directement depuis cet environnement).",
+    "world": "Wizard City",
+    "zone": "Crab Alley",
+    "boss": "Sylster Glowstorm",
+    "set": "Hangman's Set",
+    "sourceText": "Butin de Sylster Glowstorm (boss final du donjon Waterworks)",
+    "stats": {
+      "health": 346,
+      "power_pip_chance": 8,
+      "block_rating": 13,
+      "resist": 12,
+      "critical_rating": 30,
+      "death_damage": 23,
+      "incoming_healing_boost": 2
+    }
+  },
+  {
+    "name": "Hangman's Boots",
+    "type": "boots",
+    "level": 60,
+    "schools": ["death"],
+    "description": "Piece du set Hangman's (donjon Waterworks). ATTENTION : stats individuelles non trouvees directement - valeurs estimees par soustraction (total du set complet moins Hood+Cape connus). A verifier en jeu ou sur le wiki avant de considerer ces chiffres comme fiables.",
+    "world": "Wizard City",
+    "zone": "Crab Alley",
+    "boss": "Sylster Glowstorm",
+    "set": "Hangman's Set",
+    "sourceText": "Butin de Sylster Glowstorm (boss final du donjon Waterworks) - stats ESTIMEES, non confirmees individuellement",
+    "stats": {
+      "health": 123,
+      "power_pip_chance": 6,
+      "block_rating": 25,
+      "resist": 7,
+      "death_damage": 15,
+      "incoming_healing_boost": 9
+    }
+  }
+]

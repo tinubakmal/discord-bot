@@ -92,7 +92,7 @@ const SCHOOL_STAT_KINDS: { suffix: string; label: string; category: StatCategory
 const WORLDS = [
   {
     slug: "wizard-city",
-    name: "Ravenwood",
+    name: "Wizard City",
     order: 0,
     zones: [
       { slug: "ravenwood-commons", name: "Ravenwood - Cour" },
