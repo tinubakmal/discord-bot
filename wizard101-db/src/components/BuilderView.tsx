@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMeta } from "@/lib/useMeta";
 import { BUILD_SLOTS, formatStatValue, groupStatsByCategory, type StatValue } from "@/lib/stats";
 import type { ItemSummary, ItemsListResponse } from "@/lib/types";
+import { deleteSavedBuild, getSavedBuilds, saveBuild, type SavedBuild } from "@/lib/localStore";
 
 type SlotPickerProps = {
   slot: string;
@@ -76,6 +77,29 @@ export function BuilderView() {
     { setName: string; piecesEquipped: number; piecesRequired: number; description: string | null }[]
   >([]);
   const [equippedItems, setEquippedItems] = useState<ItemSummary[]>([]);
+  const [savedBuilds, setSavedBuilds] = useState<SavedBuild[]>([]);
+  const [buildName, setBuildName] = useState("");
+
+  useEffect(() => {
+    setSavedBuilds(getSavedBuilds());
+  }, []);
+
+  function handleSave() {
+    if (!buildName.trim()) return;
+    const next = saveBuild({ name: buildName.trim(), school, level, slots: slotSelection });
+    setSavedBuilds(next);
+    setBuildName("");
+  }
+
+  function handleLoad(build: SavedBuild) {
+    setSchool(build.school);
+    setLevel(build.level);
+    setSlotSelection(build.slots);
+  }
+
+  function handleDelete(id: string) {
+    setSavedBuilds(deleteSavedBuild(id));
+  }
 
   const itemIds = useMemo(
     () => Object.values(slotSelection).filter((v): v is string => Boolean(v)),
@@ -153,6 +177,55 @@ export function BuilderView() {
               className="input-arcane"
             />
           </div>
+        </div>
+
+        <div className="panel space-y-3 p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-arcane-400">
+            Builds sauvegardes (local)
+          </h2>
+          <div className="flex gap-2">
+            <input
+              value={buildName}
+              onChange={(e) => setBuildName(e.target.value)}
+              placeholder="Nom du build..."
+              className="input-arcane py-1.5 text-sm"
+            />
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!buildName.trim() || itemIds.length === 0}
+              className="btn-secondary shrink-0 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Enregistrer
+            </button>
+          </div>
+          {savedBuilds.length === 0 ? (
+            <p className="text-xs text-arcane-500">Aucun build sauvegarde pour l&apos;instant.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {savedBuilds.map((b) => (
+                <li key={b.id} className="flex items-center gap-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => handleLoad(b)}
+                    className="flex-1 truncate text-left text-arcane-200 hover:text-arcane-gold"
+                  >
+                    {b.name}{" "}
+                    <span className="text-xs text-arcane-500">
+                      ({Object.values(b.slots).filter(Boolean).length} pieces)
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(b.id)}
+                    className="text-xs text-arcane-500 hover:text-rose-400"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="space-y-2">

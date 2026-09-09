@@ -104,6 +104,23 @@ Voir `prisma/schema.prisma` (commenté) pour le détail. Points clés :
   les entités référencées qui n'existent pas encore (école, type, monde,
   statistique...). Idempotent : réimporter un fichier met à jour au lieu de
   dupliquer.
+- **Back-office admin** (`/admin`) : créer/modifier/supprimer des items, des
+  sets (avec leurs paliers de bonus), et tous les référentiels (écoles,
+  raretés, types d'objets, mondes, zones, boss, talents, définitions de
+  statistiques) directement depuis l'interface, sans passer par Prisma
+  Studio ni par un fichier d'import. Les référentiels simples partagent un
+  seul composant générique (`ReferenceManager`) piloté par une config
+  déclarative (`src/lib/adminReference.ts`) : ajouter un nouveau référentiel
+  ne demande qu'une entrée de config + un delegate Prisma, aucune nouvelle
+  page. Pas de système de compte pour l'instant (cohérent avec le
+  prototype local mono-utilisateur) — à protéger par une authentification
+  avant toute mise en ligne.
+- **Favoris & builds sauvegardés** : bouton favori (★) sur chaque item, page
+  `/favorites`, et sauvegarde de builds nommés depuis `/builder`. Stockés
+  dans le `localStorage` du navigateur (pas de compte requis) — voir
+  `src/lib/localStore.ts`. C'est le point d'extension naturel vers un vrai
+  compte utilisateur plus tard : même forme de données, déplacée côté
+  serveur et rattachée à un `User`.
 
 ## Aller à l'échelle (milliers d'items)
 
@@ -129,13 +146,16 @@ Le projet est structuré pour limiter le travail au moment du déploiement :
 3. **Images** : `next.config.mjs` autorise actuellement toutes les images
    distantes (`remotePatterns: "**"`) pour faciliter le prototypage ; à
    restreindre à un domaine précis avant mise en ligne.
-4. **Fonctionnalités prévues mais non développées dans ce prototype** :
-   comptes utilisateurs, builds sauvegardés, favoris, partage de builds,
-   commentaires, back-office d'administration, mise à jour automatique de la
-   base. L'architecture (Prisma + routes API séparées des pages) est pensée
-   pour les accueillir sans refonte : par exemple un modèle `User` et un
-   modèle `SavedBuild` référençant les `Item` existants s'ajouteraient
-   proprement au schéma actuel.
+4. **Fonctionnalités encore absentes** : comptes utilisateurs (donc pas
+   d'authentification sur le back-office admin ni de synchronisation des
+   favoris/builds entre appareils), partage de builds par lien dédié,
+   commentaires, mise à jour automatique de la base. Favoris et builds
+   sauvegardés existent déjà mais uniquement en local (`localStorage`) ; le
+   back-office admin existe déjà mais est ouvert à quiconque accède au
+   site. L'architecture (Prisma + routes API séparées des pages) est pensée
+   pour accueillir un vrai compte sans refonte : un modèle `User` +
+   `SavedBuild`/`Favorite` référençant les `Item` existants remplacerait le
+   `localStorage`, et une session/middleware protégerait `/admin`.
 5. **Hébergement** : Next.js se déploie tel quel sur Vercel, ou via
    `next start` derrière un reverse proxy sur n'importe quel serveur/VPS.
 

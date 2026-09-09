@@ -99,6 +99,105 @@ function similarityScore(candidate: ItemWithRelations, reference: ItemWithRelati
   return score;
 }
 
+export type AdminItemPayload = {
+  name: string;
+  slug: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  levelRequired: number;
+  itemTypeId: string;
+  rarityId?: string | null;
+  worldId?: string | null;
+  zoneId?: string | null;
+  bossId?: string | null;
+  setId?: string | null;
+  sourceText?: string | null;
+  popularity?: number;
+  schoolIds: string[];
+  talentIds: string[];
+  stats: { statDefinitionId: string; value: number }[];
+};
+
+/** Represente un item sous une forme directement editable par le formulaire admin. */
+export async function getAdminItem(id: string): Promise<AdminItemPayload & { id: string } | null> {
+  const item = await prisma.item.findUnique({
+    where: { id },
+    include: { schools: true, stats: true, talents: true },
+  });
+  if (!item) return null;
+  return {
+    id: item.id,
+    name: item.name,
+    slug: item.slug,
+    description: item.description,
+    imageUrl: item.imageUrl,
+    levelRequired: item.levelRequired,
+    itemTypeId: item.itemTypeId,
+    rarityId: item.rarityId,
+    worldId: item.worldId,
+    zoneId: item.zoneId,
+    bossId: item.bossId,
+    setId: item.setId,
+    sourceText: item.sourceText,
+    popularity: item.popularity,
+    schoolIds: item.schools.map((s) => s.schoolId),
+    talentIds: item.talents.map((t) => t.talentId),
+    stats: item.stats.map((s) => ({ statDefinitionId: s.statDefinitionId, value: s.value })),
+  };
+}
+
+/** Cree ou met a jour un item et remplace entierement ses relations
+ * (ecoles/talents/stats) a partir du payload du formulaire admin. */
+export async function upsertAdminItem(payload: AdminItemPayload, existingId?: string) {
+  const scalarData = {
+    name: payload.name,
+    slug: payload.slug,
+    description: payload.description || null,
+    imageUrl: payload.imageUrl || null,
+    levelRequired: payload.levelRequired,
+    itemTypeId: payload.itemTypeId,
+    rarityId: payload.rarityId || null,
+    worldId: payload.worldId || null,
+    zoneId: payload.zoneId || null,
+    bossId: payload.bossId || null,
+    setId: payload.setId || null,
+    sourceText: payload.sourceText || null,
+    popularity: payload.popularity ?? 0,
+  };
+
+  return prisma.$transaction(async (tx) => {
+    const item = existingId
+      ? await tx.item.update({ where: { id: existingId }, data: scalarData })
+      : await tx.item.create({ data: scalarData });
+
+    await tx.itemSchool.deleteMany({ where: { itemId: item.id } });
+    await tx.itemTalent.deleteMany({ where: { itemId: item.id } });
+    await tx.itemStat.deleteMany({ where: { itemId: item.id } });
+
+    if (payload.schoolIds.length) {
+      await tx.itemSchool.createMany({
+        data: payload.schoolIds.map((schoolId) => ({ itemId: item.id, schoolId })),
+      });
+    }
+    if (payload.talentIds.length) {
+      await tx.itemTalent.createMany({
+        data: payload.talentIds.map((talentId) => ({ itemId: item.id, talentId })),
+      });
+    }
+    if (payload.stats.length) {
+      await tx.itemStat.createMany({
+        data: payload.stats.map((s) => ({
+          itemId: item.id,
+          statDefinitionId: s.statDefinitionId,
+          value: s.value,
+        })),
+      });
+    }
+
+    return item;
+  });
+}
+
 export async function getItemDetail(slug: string): Promise<ItemDetail | null> {
   const item = await prisma.item.findUnique({ where: { slug }, include: itemInclude });
   if (!item) return null;
