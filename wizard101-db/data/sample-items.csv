@@ -1,0 +1,3 @@
+name,type,level,rarity,schools,description,world,zone,sourceText,stat_health,stat_ice_damage,stat_resist
+Bottes Importees CSV,boots,50,rare,ice,Item de demonstration importe depuis un CSV.,krokotopia,pyramid-of-the-sun,Importe depuis data/sample-items.csv,120,9,5
+Anneau Importe CSV,ring,50,uncommon,ice,Deuxieme ligne du CSV de demonstration.,krokotopia,pyramid-of-the-sun,Importe depuis data/sample-items.csv,60,4,2
