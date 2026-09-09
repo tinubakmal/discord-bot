@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Chapeau Importe de Test",
+    "type": "hat",
+    "level": 50,
+    "rarity": "rare",
+    "schools": ["fire"],
+    "description": "Item de demonstration cree via le script d'import JSON.",
+    "stats": { "health": 100, "fire_damage": 10, "resist": 3 },
+    "talents": ["efficient"],
+    "world": "krokotopia",
+    "zone": "krokosphinx",
+    "sourceText": "Importe depuis data/sample-items.json"
+  },
+  {
+    "name": "Robe Importee de Test",
+    "type": "robe",
+    "level": 50,
+    "rarity": "rare",
+    "schools": ["fire"],
+    "description": "Deuxieme item de demonstration pour valider l'import en lot.",
+    "stats": { "health": 180, "fire_damage": 14, "block_rating": 20 },
+    "world": "krokotopia",
+    "zone": "krokosphinx",
+    "sourceText": "Importe depuis data/sample-items.json"
+  }
+]

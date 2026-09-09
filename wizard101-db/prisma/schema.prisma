@@ -1,0 +1,290 @@
+// ============================================================================
+// Wizard101 Items DB - schema de donnees
+//
+// Principes de conception :
+// - Les statistiques ne sont JAMAIS stockees en texte libre : chaque valeur
+//   (ItemStat, SetBonusStat) pointe vers une StatDefinition structuree, ce qui
+//   permet des calculs, des filtres numeriques et des comparaisons fiables.
+// - Les "types d'objets" (chapeau, robe, baguette, deck, pet, ...) sont des
+//   lignes de la table ItemType et non un enum fige : on peut en ajouter de
+//   nouveaux sans toucher au code ni au schema.
+// - Idem pour les StatDefinition : ajouter une nouvelle statistique (ou une
+//   statistique propre a une ecole) est une simple insertion en base.
+// - SQLite est utilise en local pour zero-configuration. Le provider peut
+//   etre bascule vers "postgresql" pour la mise en production plus tard sans
+//   changer le reste du code (Prisma abstrait le SGBD).
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Referentiels
+// ----------------------------------------------------------------------------
+
+model School {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  color String? // couleur hexadecimale pour l'UI
+  icon  String? // emoji ou chemin d'icone
+
+  items          ItemSchool[]
+  statDefinitions StatDefinition[]
+
+  @@map("schools")
+}
+
+model World {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  order Int    @default(0)
+
+  zones Zone[]
+  items Item[]
+
+  @@map("worlds")
+}
+
+model Zone {
+  id      String @id @default(cuid())
+  slug    String @unique
+  name    String
+  worldId String?
+  world   World?  @relation(fields: [worldId], references: [id])
+
+  bosses Boss[]
+  items  Item[]
+
+  @@index([worldId])
+  @@map("zones")
+}
+
+model Boss {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  zoneId      String?
+  zone        Zone?   @relation(fields: [zoneId], references: [id])
+
+  items Item[]
+
+  @@index([zoneId])
+  @@map("bosses")
+}
+
+model Rarity {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  color String?
+  order Int    @default(0) // ordre d'affichage / tri (commun -> mythique)
+
+  items Item[]
+
+  @@map("rarities")
+}
+
+// Type d'objet : chapeau, robe, bottes, baguette, athame, amulette, anneau,
+// deck, pet, monture, etc. Nouvelle categorie = nouvelle ligne, pas de code.
+model ItemType {
+  id   String  @id @default(cuid())
+  slug String  @unique
+  name String
+  // "slot" identifie l'emplacement d'equipement utilise par le createur de
+  // build (hat, robe, boots, wand, athame, amulet, ring, deck, pet, mount...).
+  // Nullable pour les objets qui ne sont pas equipables dans un slot de build.
+  slot String?
+  icon String?
+
+  items Item[]
+
+  @@map("item_types")
+}
+
+model ItemSet {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  popularity  Int     @default(0)
+
+  items   Item[]
+  bonuses SetBonus[]
+
+  @@map("item_sets")
+}
+
+model SetBonus {
+  id             String  @id @default(cuid())
+  setId          String
+  set            ItemSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  piecesRequired Int
+  description    String?
+
+  stats SetBonusStat[]
+
+  @@index([setId])
+  @@map("set_bonuses")
+}
+
+// ----------------------------------------------------------------------------
+// Systeme de statistiques (structure, pas du texte)
+// ----------------------------------------------------------------------------
+
+// Categories de haut niveau utilisees pour regrouper l'affichage et les filtres.
+// SQLite ne supporte pas les enums natifs Prisma : on utilise une String
+// contrainte cote application a l'une des valeurs suivantes (voir
+// src/lib/stats.ts -> StatCategory) :
+//   GENERAL | COMBAT | SCHOOL_DAMAGE | SCHOOL_RESIST | SCHOOL_ACCURACY | UTILITY | OTHER
+
+model StatDefinition {
+  id       String       @id @default(cuid())
+  key      String       @unique // ex: "damage", "fire_damage", "critical_rating"
+  name     String // libelle affiche, ex: "Degats"
+  shortName String? // libelle court pour les tableaux, ex: "DMG"
+  unit     String? // "%", "flat", "pts"
+  category String       @default("GENERAL")
+  // Si la stat est propre a une ecole (ex: "Degats Feu"), on la relie ici.
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id])
+  icon     String?
+  // Ordre d'affichage dans les fiches d'item / comparateur
+  order    Int     @default(0)
+
+  itemStats     ItemStat[]
+  setBonusStats SetBonusStat[]
+
+  @@index([category])
+  @@map("stat_definitions")
+}
+
+// Valeur d'une statistique pour un item donne (structure cle/valeur typee).
+model ItemStat {
+  id               String         @id @default(cuid())
+  itemId           String
+  item             Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  statDefinitionId String
+  statDefinition   StatDefinition @relation(fields: [statDefinitionId], references: [id])
+  value            Float
+
+  @@unique([itemId, statDefinitionId])
+  @@index([statDefinitionId, value])
+  @@map("item_stats")
+}
+
+model SetBonusStat {
+  id               String         @id @default(cuid())
+  setBonusId       String
+  setBonus         SetBonus       @relation(fields: [setBonusId], references: [id], onDelete: Cascade)
+  statDefinitionId String
+  statDefinition   StatDefinition @relation(fields: [statDefinitionId], references: [id])
+  value            Float
+
+  @@unique([setBonusId, statDefinitionId])
+  @@map("set_bonus_stats")
+}
+
+// ----------------------------------------------------------------------------
+// Talents / effets particuliers (traites/enchantements donnant un pouvoir,
+// pas une simple statistique numerique)
+// ----------------------------------------------------------------------------
+
+model Talent {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  icon        String?
+
+  items ItemTalent[]
+
+  @@map("talents")
+}
+
+model ItemTalent {
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  talentId String
+  talent   Talent @relation(fields: [talentId], references: [id])
+
+  @@id([itemId, talentId])
+  @@map("item_talents")
+}
+
+// Ecole(s) concernee(s) par un item (plusieurs possibles, ex: item multi-ecole)
+model ItemSchool {
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  @@id([itemId, schoolId])
+  @@map("item_schools")
+}
+
+// ----------------------------------------------------------------------------
+// Item
+// ----------------------------------------------------------------------------
+
+model Item {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  description   String?
+  imageUrl      String?
+  levelRequired Int      @default(1)
+
+  itemTypeId String
+  itemType   ItemType @relation(fields: [itemTypeId], references: [id])
+
+  rarityId String?
+  rarity   Rarity? @relation(fields: [rarityId], references: [id])
+
+  worldId String?
+  world   World?  @relation(fields: [worldId], references: [id])
+
+  zoneId String?
+  zone   Zone?   @relation(fields: [zoneId], references: [id])
+
+  bossId String?
+  boss   Boss?   @relation(fields: [bossId], references: [id])
+
+  setId String?
+  set   ItemSet? @relation(fields: [setId], references: [id])
+
+  // Source textuelle libre quand il n'y a pas de boss/zone structure
+  // (ex: "Pack Colossus", "Boutique du Bazar", "Quete: Le Spirale en danger").
+  sourceText String?
+
+  // Champ libre pour toute info supplementaire non modelisee, serialisee en
+  // JSON (String, SQLite ne supporte pas le type Json natif de Prisma), afin
+  // de ne jamais bloquer un import a cause d'une donnee non prevue par le
+  // schema. Utiliser JSON.parse/JSON.stringify cote application.
+  extra String?
+
+  popularity Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  schools ItemSchool[]
+  stats   ItemStat[]
+  talents ItemTalent[]
+
+  @@index([itemTypeId])
+  @@index([levelRequired])
+  @@index([setId])
+  @@index([worldId])
+  @@index([zoneId])
+  @@index([bossId])
+  @@index([rarityId])
+  @@map("items")
+}

@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: #0a0817;
+  color: #ded4f7;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(90, 69, 153, 0.28), transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(60, 47, 122, 0.22), transparent 40%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background-color: rgba(232, 195, 105, 0.35);
+}
+
+/* Scrollbar sombre discrete */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #120e26;
+}
+::-webkit-scrollbar-thumb {
+  background: #3c2f7a;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #5a4599;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-arcane-700/60 bg-arcane-900/70 backdrop-blur-sm shadow-lg shadow-black/30;
+  }
+
+  .panel-glow {
+    @apply panel shadow-glow;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-arcane-gold px-4 py-2 font-semibold text-arcane-950 transition hover:brightness-110 active:brightness-95;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-arcane-500/60 bg-arcane-800/60 px-4 py-2 font-medium text-arcane-200 transition hover:border-arcane-400 hover:bg-arcane-700/60;
+  }
+
+  .input-arcane {
+    @apply w-full rounded-lg border border-arcane-600/60 bg-arcane-900/80 px-3 py-2 text-arcane-100 placeholder:text-arcane-400 outline-none transition focus:border-arcane-gold focus:ring-1 focus:ring-arcane-gold;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border border-arcane-600/60 bg-arcane-800/70 px-2.5 py-0.5 text-xs font-medium text-arcane-200;
+  }
+}
