@@ -1,14 +1,14 @@
 /**
- * Seed de demonstration : cree un jeu de donnees restreint mais complet
- * (ecoles, mondes/zones/boss, raretes, types d'objets, definitions de
- * statistiques, sets avec bonus, talents et ~25 items) pour pouvoir tester
- * immediatement la recherche, les filtres, le comparateur, le createur de
- * build et l'import. Le script est idempotent (upsert partout) : on peut le
- * relancer sans dupliquer les donnees.
+ * Seed de reference : cree uniquement les referentiels necessaires au
+ * fonctionnement de l'app (ecoles, mondes/zones/boss reels de Wizard101,
+ * raretes, types d'objets, definitions de statistiques, talents) - de quoi
+ * remplir les filtres et les formulaires du back-office. Le script est
+ * idempotent (upsert partout) : on peut le relancer sans dupliquer les
+ * donnees.
  *
- * Pour charger un vrai jeu de donnees complet, utiliser `npm run import`
- * (voir scripts/import.ts et data/IMPORT_GUIDE.md) plutot que de modifier
- * ce fichier.
+ * Volontairement AUCUN item ni set fictif n'est cree ici : ajoutez de vrais
+ * items via le back-office (/admin) ou en important un fichier JSON/CSV
+ * avec `npm run import` (voir scripts/import.ts et data/IMPORT_GUIDE.md).
  */
 import { PrismaClient } from "@prisma/client";
 
@@ -81,6 +81,7 @@ const GENERAL_STATS: {
   { key: "healing_boost", name: "Puissance de soin", shortName: "HEAL", unit: "%", category: "UTILITY", icon: "✨", order: 20 },
   { key: "life_steal", name: "Vol de vie", shortName: "STEAL", unit: "%", category: "UTILITY", icon: "🩸", order: 21 },
   { key: "outgoing_pip_conversion", name: "Conversion de pip", shortName: "PIPC", unit: "%", category: "UTILITY", icon: "🔁", order: 22 },
+  { key: "incoming_healing_boost", name: "Soins recus", shortName: "HEAL RECU", unit: "%", category: "UTILITY", icon: "💚", order: 23 },
 ];
 
 const SCHOOL_STAT_KINDS: { suffix: string; label: string; category: StatCategory; icon: string; orderBase: number }[] = [
@@ -252,189 +253,7 @@ async function main() {
     talents.set(t.slug, talent);
   }
 
-  console.log("Seed: sets et bonus...");
-
-  type SetSpec = {
-    slug: string;
-    name: string;
-    description: string;
-    bonuses: { pieces: number; description: string; stats: Record<string, number> }[];
-  };
-  const SETS: SetSpec[] = [
-    {
-      slug: "storm-caller",
-      name: "Ensemble de l'Appel de Tempete",
-      description: "Un ensemble redoutable forge pour les invocateurs de foudre.",
-      bonuses: [
-        { pieces: 3, description: "+8% Degats Tempete", stats: { storm_damage: 8 } },
-        { pieces: 4, description: "+40 Sante, +8% Precision Tempete", stats: { health: 40, storm_accuracy: 8 } },
-        { pieces: 5, description: "+120 Critique, +6% Blocage", stats: { critical_rating: 120, block_rating: 6 } },
-      ],
-    },
-    {
-      slug: "malfaisance",
-      name: "Ensemble de Malfaisance",
-      description: "Favorise par les necromanciens pour son vol de vie devastateur.",
-      bonuses: [
-        { pieces: 3, description: "+6% Vol de vie", stats: { life_steal: 6 } },
-        { pieces: 4, description: "+10% Degats Mort", stats: { death_damage: 10 } },
-        { pieces: 5, description: "+60 Sante, +5% Perforation", stats: { health: 60, pierce: 5 } },
-      ],
-    },
-  ];
-
-  const itemSets = new Map<string, { id: string }>();
-  for (const s of SETS) {
-    const set = await prisma.itemSet.upsert({
-      where: { slug: s.slug },
-      update: { name: s.name, description: s.description, popularity: 100 },
-      create: { slug: s.slug, name: s.name, description: s.description, popularity: 100 },
-    });
-    itemSets.set(s.slug, set);
-
-    for (const bonus of s.bonuses) {
-      const existing = await prisma.setBonus.findFirst({
-        where: { setId: set.id, piecesRequired: bonus.pieces },
-      });
-      const setBonus = existing
-        ? await prisma.setBonus.update({ where: { id: existing.id }, data: { description: bonus.description } })
-        : await prisma.setBonus.create({
-            data: { setId: set.id, piecesRequired: bonus.pieces, description: bonus.description },
-          });
-      for (const [key, value] of Object.entries(bonus.stats)) {
-        const statDefinitionId = statDefs.get(key)?.id;
-        if (!statDefinitionId) continue;
-        await prisma.setBonusStat.upsert({
-          where: { setBonusId_statDefinitionId: { setBonusId: setBonus.id, statDefinitionId } },
-          update: { value },
-          create: { setBonusId: setBonus.id, statDefinitionId, value },
-        });
-      }
-    }
-  }
-
-  console.log("Seed: items...");
-
-  type ItemSpec = {
-    name: string;
-    type: string;
-    level: number;
-    rarity: string;
-    schools: string[];
-    description: string;
-    stats: Record<string, number>;
-    talents?: string[];
-    set?: string;
-    world?: string;
-    zone?: string;
-    boss?: string;
-    sourceText?: string;
-    imageUrl?: string;
-    popularity?: number;
-  };
-
-  const ITEMS: ItemSpec[] = [
-    // --- Ensemble Appel de Tempete (5 pieces, niveau 170) ---
-    { name: "Couronne de l'Appel de Tempete", type: "hat", level: 170, rarity: "epic", schools: ["storm"], description: "Crepite d'une energie electrique constante.", stats: { health: 320, storm_damage: 22, critical_rating: 180, accuracy: 5 }, talents: ["pain-giver"], set: "storm-caller", world: "avalon", zone: "camelot", boss: "morgan-le-fay", popularity: 88 },
-    { name: "Robe de l'Appel de Tempete", type: "robe", level: 170, rarity: "epic", schools: ["storm"], description: "Tissee avec des fils charges de foudre.", stats: { health: 480, storm_damage: 28, resist: 8, block_rating: 90 }, talents: ["efficient"], set: "storm-caller", world: "avalon", zone: "camelot", boss: "morgan-le-fay", popularity: 92 },
-    { name: "Bottes de l'Appel de Tempete", type: "boots", level: 170, rarity: "epic", schools: ["storm"], description: "Laissent une trainee d'etincelles a chaque pas.", stats: { health: 200, storm_accuracy: 12, pierce: 6 }, set: "storm-caller", world: "avalon", zone: "camelot", sourceText: "Butin de Morgane la Fee", popularity: 74 },
-    { name: "Baguette de l'Appel de Tempete", type: "wand", level: 170, rarity: "epic", schools: ["storm"], description: "Une baguette crepitante taillee dans du bois d'orage.", stats: { damage: 10, storm_damage: 18, critical_rating: 60 }, set: "storm-caller", world: "avalon", zone: "camelot", popularity: 65 },
-    { name: "Amulette de l'Appel de Tempete", type: "amulet", level: 170, rarity: "epic", schools: ["storm"], description: "Un pendentif qui bourdonne d'electricite statique.", stats: { health: 150, storm_damage: 10, resist: 4 }, set: "storm-caller", world: "avalon", zone: "camelot", popularity: 55 },
-
-    // --- Ensemble Malfaisance (5 pieces, niveau 160) ---
-    { name: "Capuche de Malfaisance", type: "hat", level: 160, rarity: "epic", schools: ["death"], description: "Dissimule un regard glacial.", stats: { health: 300, death_damage: 20, life_steal: 5 }, talents: ["guardian-spirit"], set: "malfaisance", world: "mooshu", zone: "tree-of-life", boss: "jade-oni", popularity: 70 },
-    { name: "Robe de Malfaisance", type: "robe", level: 160, rarity: "epic", schools: ["death"], description: "Absorbe une part de la vitalite des ennemis.", stats: { health: 450, death_damage: 24, life_steal: 8 }, set: "malfaisance", world: "mooshu", zone: "tree-of-life", boss: "jade-oni", popularity: 80 },
-    { name: "Bottes de Malfaisance", type: "boots", level: 160, rarity: "epic", schools: ["death"], description: "Ne laissent aucune empreinte.", stats: { health: 180, death_accuracy: 10, pierce: 5 }, set: "malfaisance", world: "mooshu", zone: "tree-of-life", popularity: 48 },
-    { name: "Athame de Malfaisance", type: "athame", level: 160, rarity: "epic", schools: ["death"], description: "Sa lame semble boire la lumiere environnante.", stats: { damage: 8, death_damage: 15, critical_rating: 40 }, set: "malfaisance", world: "mooshu", zone: "tree-of-life", popularity: 42 },
-    { name: "Anneau de Malfaisance", type: "ring", level: 160, rarity: "epic", schools: ["death"], description: "Un anneau froid au toucher, meme au soleil.", stats: { health: 120, life_steal: 6 }, set: "malfaisance", world: "mooshu", zone: "tree-of-life", popularity: 38 },
-
-    // --- Items independants, diverses ecoles / types / niveaux ---
-    { name: "Chapeau de l'Etincelle Naissante", type: "hat", level: 25, rarity: "common", schools: ["storm"], description: "Un chapeau simple pour jeunes invocateurs de tempete.", stats: { health: 60, storm_damage: 5 }, world: "wizard-city", zone: "unicorn-way", sourceText: "Vendeur - Ravenwood", popularity: 12 },
-    { name: "Robe des Flammes Tranquilles", type: "robe", level: 48, rarity: "uncommon", schools: ["fire"], description: "Chaude sans jamais bruler son porteur.", stats: { health: 140, fire_damage: 9, resist: 3 }, world: "krokotopia", zone: "krokosphinx", boss: "krokopatra", popularity: 34 },
-    { name: "Bottes du Pas Glacial", type: "boots", level: 60, rarity: "rare", schools: ["ice"], description: "Chaque pas gele legerement le sol.", stats: { health: 110, ice_resist: 12, block_rating: 30 }, world: "krokotopia", zone: "pyramid-of-the-sun", sourceText: "Coffre de la Pyramide du Soleil", popularity: 29 },
-    { name: "Baguette du Sage Mythique", type: "wand", level: 90, rarity: "rare", schools: ["myth"], description: "Gravee de runes anciennes.", stats: { damage: 6, myth_damage: 14, accuracy: 4 }, world: "mooshu", zone: "tree-of-life", popularity: 25 },
-    { name: "Amulette de Vie Florissante", type: "amulet", level: 55, rarity: "uncommon", schools: ["life"], description: "Emet une legere lueur verte apaisante.", stats: { health: 90, healing_boost: 12, life_damage: 6 }, world: "mooshu", zone: "tree-of-life", popularity: 22 },
-    { name: "Anneau de l'Equilibre Parfait", type: "ring", level: 100, rarity: "rare", schools: ["balance"], description: "Toujours en parfait equilibre, meme au combat.", stats: { health: 80, balance_damage: 10, balance_accuracy: 6 }, world: "avalon", zone: "camelot", popularity: 27 },
-    { name: "Athame du Chuchoteur d'Ombres", type: "athame", level: 130, rarity: "rare", schools: ["death"], description: "Murmure des secrets a qui sait ecouter.", stats: { damage: 5, death_damage: 12, pierce: 4 }, world: "avalon", zone: "camelot", boss: "morgan-le-fay", popularity: 31 },
-    { name: "Deck de Sorts Elementaires", type: "deck", level: 40, rarity: "common", schools: ["fire", "ice", "storm"], description: "Un jeu de cartes polyvalent pour maitriser les elements.", stats: { mana: 30 }, world: "krokotopia", zone: "krokosphinx", sourceText: "Boutique du Bazar", popularity: 18 },
-    { name: "Familier: Dragonnet de Feu", type: "pet", level: 15, rarity: "uncommon", schools: ["fire"], description: "Un jeune dragon fougueux qui adore les combats.", stats: { fire_damage: 8, critical_rating: 20 }, sourceText: "Pack Dragon", popularity: 55 },
-    { name: "Monture: Coursier Spectral", type: "mount", level: 15, rarity: "rare", schools: [], description: "Se deplace en silence entre les mondes.", stats: { archmastery_rating: 15 }, sourceText: "Boutique du Bazar", popularity: 44 },
-    { name: "Chapeau Legendaire du Grand Archimage", type: "hat", level: 170, rarity: "legendary", schools: ["balance"], description: "Porte autrefois par un archimage de legende.", stats: { health: 400, balance_damage: 26, critical_rating: 200, resist: 6 }, talents: ["pain-giver", "sharpened"], world: "avalon", zone: "camelot", sourceText: "Recompense de raid", popularity: 97 },
-    { name: "Robe Mythique du Neant Devorant", type: "robe", level: 170, rarity: "mythic", schools: ["death"], description: "Une robe qui semble aspirer la lumiere autour d'elle.", stats: { health: 520, death_damage: 32, life_steal: 10, resist: 9 }, talents: ["guardian-spirit"], world: "avalon", zone: "camelot", sourceText: "Recompense de raid ultime", popularity: 99 },
-    { name: "Deck de Combat Avance", type: "deck", level: 90, rarity: "rare", schools: [], description: "Un deck robuste pour affronter les zones avancees.", stats: { mana: 60 }, world: "mooshu", zone: "tree-of-life", popularity: 20 },
-    { name: "Anneau Peu Commun de Precision", type: "ring", level: 70, rarity: "uncommon", schools: [], description: "Aide a mieux viser ses adversaires.", stats: { accuracy: 8 }, world: "krokotopia", zone: "pyramid-of-the-sun", popularity: 15 },
-  ];
-
-  for (const spec of ITEMS) {
-    const slug = slugify(spec.name);
-    const item = await prisma.item.upsert({
-      where: { slug },
-      update: {
-        name: spec.name,
-        description: spec.description,
-        levelRequired: spec.level,
-        itemTypeId: itemTypes.get(spec.type)!.id,
-        rarityId: rarities.get(spec.rarity)?.id,
-        worldId: spec.world ? worlds.get(spec.world)?.id : null,
-        zoneId: spec.zone ? zones.get(spec.zone)?.id : null,
-        bossId: spec.boss ? bosses.get(spec.boss)?.id : null,
-        setId: spec.set ? itemSets.get(spec.set)?.id : null,
-        sourceText: spec.sourceText,
-        imageUrl: spec.imageUrl,
-        popularity: spec.popularity ?? 0,
-      },
-      create: {
-        slug,
-        name: spec.name,
-        description: spec.description,
-        levelRequired: spec.level,
-        itemTypeId: itemTypes.get(spec.type)!.id,
-        rarityId: rarities.get(spec.rarity)?.id,
-        worldId: spec.world ? worlds.get(spec.world)?.id : null,
-        zoneId: spec.zone ? zones.get(spec.zone)?.id : null,
-        bossId: spec.boss ? bosses.get(spec.boss)?.id : null,
-        setId: spec.set ? itemSets.get(spec.set)?.id : null,
-        sourceText: spec.sourceText,
-        imageUrl: spec.imageUrl,
-        popularity: spec.popularity ?? 0,
-      },
-    });
-
-    for (const schoolSlug of spec.schools) {
-      const school = schools.get(schoolSlug);
-      if (!school) continue;
-      await prisma.itemSchool.upsert({
-        where: { itemId_schoolId: { itemId: item.id, schoolId: school.id } },
-        update: {},
-        create: { itemId: item.id, schoolId: school.id },
-      });
-    }
-
-    for (const [key, value] of Object.entries(spec.stats)) {
-      const statDefinitionId = statDefs.get(key)?.id;
-      if (!statDefinitionId) {
-        console.warn(`  ! Stat inconnue "${key}" pour l'item "${spec.name}" (ignoree)`);
-        continue;
-      }
-      await prisma.itemStat.upsert({
-        where: { itemId_statDefinitionId: { itemId: item.id, statDefinitionId } },
-        update: { value },
-        create: { itemId: item.id, statDefinitionId, value },
-      });
-    }
-
-    for (const talentSlug of spec.talents ?? []) {
-      const talent = talents.get(talentSlug);
-      if (!talent) continue;
-      await prisma.itemTalent.upsert({
-        where: { itemId_talentId: { itemId: item.id, talentId: talent.id } },
-        update: {},
-        create: { itemId: item.id, talentId: talent.id },
-      });
-    }
-  }
-
-  console.log(`Seed termine : ${ITEMS.length} items, ${SETS.length} sets, ${SCHOOLS.length} ecoles.`);
+  console.log(`Seed termine : referentiels uniquement (${SCHOOLS.length} ecoles, ${WORLDS.length} mondes, ${ITEM_TYPES.length} types d'objets, ${TALENTS.length} talents). Aucun item ni set fictif n'est cree - utilisez le back-office (/admin) ou "npm run import" pour ajouter de vrais items.`);
 }
 
 main()
@@ -445,3 +264,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
