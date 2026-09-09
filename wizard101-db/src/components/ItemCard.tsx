@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ItemSummary } from "@/lib/types";
 import { RarityBadge, SchoolBadge, StatChip } from "./Badges";
+import { FavoriteButton } from "./FavoriteButton";
 
 export function ItemCard({
   item,
@@ -39,22 +40,25 @@ export function ItemCard({
             {item.set ? ` - ${item.set.name}` : ""}
           </p>
         </div>
-        {selectable ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              onToggleSelect?.(item);
-            }}
-            className={`shrink-0 rounded-md border px-2 py-1 text-xs font-semibold ${
-              selected
-                ? "border-arcane-gold bg-arcane-gold text-arcane-950"
-                : "border-arcane-600 text-arcane-300 hover:border-arcane-gold hover:text-arcane-gold"
-            }`}
-          >
-            {selected ? "Selectionne" : "Comparer"}
-          </button>
-        ) : null}
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <FavoriteButton item={item} size="sm" />
+          {selectable ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                onToggleSelect?.(item);
+              }}
+              className={`rounded-md border px-2 py-1 text-xs font-semibold ${
+                selected
+                  ? "border-arcane-gold bg-arcane-gold text-arcane-950"
+                  : "border-arcane-600 text-arcane-300 hover:border-arcane-gold hover:text-arcane-gold"
+              }`}
+            >
+              {selected ? "Selectionne" : "Comparer"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">

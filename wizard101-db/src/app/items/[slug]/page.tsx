@@ -5,6 +5,7 @@ import { getItemDetail } from "@/lib/queries";
 import { RarityBadge, SchoolBadge } from "@/components/Badges";
 import { StatList } from "@/components/StatList";
 import { ItemCard } from "@/components/ItemCard";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +32,12 @@ export default async function ItemDetailPage({ params }: { params: { slug: strin
               <SchoolBadge key={s.slug} school={s} />
             ))}
           </div>
-          <Link
-            href={`/compare?ids=${item.id}`}
-            className="btn-primary w-full"
-          >
-            ⚖️ Comparer cet item
-          </Link>
+          <div className="flex w-full gap-2">
+            <Link href={`/compare?ids=${item.id}`} className="btn-primary flex-1">
+              ⚖️ Comparer
+            </Link>
+            <FavoriteButton item={item} />
+          </div>
         </div>
 
         <div className="space-y-6">

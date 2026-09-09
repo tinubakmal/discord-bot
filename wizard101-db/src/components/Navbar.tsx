@@ -8,6 +8,8 @@ const NAV_LINKS = [
   { href: "/items", label: "Items" },
   { href: "/compare", label: "Comparateur" },
   { href: "/builder", label: "Createur de build" },
+  { href: "/favorites", label: "★ Favoris" },
+  { href: "/admin", label: "Admin" },
 ];
 
 export function Navbar() {
